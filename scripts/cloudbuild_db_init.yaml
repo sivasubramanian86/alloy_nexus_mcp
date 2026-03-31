@@ -1,0 +1,15 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    apt-get update && apt-get install -y postgresql-client
+    export PGPASSWORD='[REDACTED_SECRET]'
+    echo "Checking connection to 10.49.0.5..."
+    # Attempt to create the database
+    psql -h 10.49.0.5 -U postgres -c "CREATE DATABASE pharma_inventory;" || echo "Database may already exist."
+    
+    # Run setup and seed
+    psql -h 10.49.0.5 -U postgres -d pharma_inventory -f scripts/01_setup_alloydb.sql
+    psql -h 10.49.0.5 -U postgres -d pharma_inventory -f scripts/02_enable_alloydb_ai.sql

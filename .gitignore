@@ -1,0 +1,34 @@
+# Exclude Submission Decks
+*.pptx
+*.ppt
+*.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+
+# Google Cloud Auth / Config
+.google-cloud-sdk/
+credentials.json
+key-file.json
+adc.json
+.gcloud/
+
+# Data Connect Secret Leak Prevention
+*secret*
+*password*
+*auth*
+!*.sql
+
+# Logs
+*.log
+*.audit
+
+# System
+.DS_Store
+Thumbs.db

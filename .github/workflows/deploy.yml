@@ -1,0 +1,112 @@
+name: Deploy QuerySage to Cloud Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PROJECT_ID:    ${{ vars.PROJECT_ID }}
+  REGION:        ${{ vars.REGION }}
+  REPO:          querysage-repo
+
+jobs:
+  # ── Job 1: Deploy Agent (FastAPI backend) ──────────────────────────────
+  deploy-agent:
+    name: Build & Deploy Agent
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account:            ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Create Artifact Registry repo (idempotent)
+        run: |
+          gcloud artifacts repositories create $REPO \
+            --repository-format=docker \
+            --location=$REGION \
+            --project=$PROJECT_ID \
+            --quiet || true
+
+      - name: Configure Docker auth
+        run: gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+
+      - name: Build & push agent image
+        run: |
+          docker build \
+            -t "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/querysage-agent:${{ github.sha }}" \
+            ./agent
+          docker push "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/querysage-agent:${{ github.sha }}"
+
+      - name: Deploy agent to Cloud Run
+        run: |
+          gcloud run deploy querysage-agent \
+            --image="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/querysage-agent:${{ github.sha }}" \
+            --region=$REGION \
+            --project=$PROJECT_ID \
+            --platform=managed \
+            --allow-unauthenticated \
+            --memory=1Gi \
+            --cpu=1 \
+            --min-instances=0 \
+            --max-instances=5 \
+            --set-secrets="ALLOYDB_DB_URL=querysage-db-url:latest" \
+            --set-env-vars="PROJECT_ID=${PROJECT_ID},REGION=${REGION},ENVIRONMENT=production"
+
+  # ── Job 2: Deploy Frontend (nginx static) ─────────────────────────────
+  deploy-frontend:
+    name: Build & Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: deploy-agent
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account:            ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker auth
+        run: gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+
+      - name: Build & push frontend image
+        run: |
+          docker build \
+            -t "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/querysage-frontend:${{ github.sha }}" \
+            ./frontend
+          docker push "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/querysage-frontend:${{ github.sha }}"
+
+      - name: Deploy frontend to Cloud Run
+        run: |
+          gcloud run deploy querysage-frontend \
+            --image="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/querysage-frontend:${{ github.sha }}" \
+            --region=$REGION \
+            --project=$PROJECT_ID \
+            --platform=managed \
+            --allow-unauthenticated \
+            --memory=256Mi \
+            --cpu=1 \
+            --min-instances=0 \
+            --max-instances=3
+
+      - name: Print deployed URLs
+        run: |
+          echo "Agent URL:"
+          gcloud run services describe querysage-agent --region=$REGION --project=$PROJECT_ID --format="value(status.url)"
+          echo "Frontend URL:"
+          gcloud run services describe querysage-frontend --region=$REGION --project=$PROJECT_ID --format="value(status.url)"

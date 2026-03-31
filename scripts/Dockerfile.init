@@ -1,0 +1,7 @@
+FROM python:3.11-slim
+RUN pip install psycopg2-binary
+WORKDIR /app
+COPY init_db.py .
+COPY 01_setup_alloydb.sql .
+COPY 02_enable_alloydb_ai.sql .
+CMD ["python", "init_db.py"]

@@ -1,0 +1,25 @@
+steps:
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    # Install psql client (using postgresql-client-17)
+    # We use a 17-compatible client to match the database
+    apt-get update && apt-get install -y postgresql-client
+    
+    # Environment Variables
+    export PGPASSWORD="[REDACTED_SECRET]"
+    DB_IP="10.49.0.5"
+    DB_NAME="pharma_inventory"
+
+    echo "Attempting to create database '$DB_NAME'..."
+    psql -h $DB_IP -U postgres -c "CREATE DATABASE $DB_NAME;" || echo "Database may already exist, proceeding..."
+    
+    echo "Running Schema from 01_setup_alloydb.sql..."
+    psql -h $DB_IP -U postgres -d $DB_NAME -f scripts/01_setup_alloydb.sql
+    
+    echo "Enabling AlloyDB AI from 02_enable_alloydb_ai.sql..."
+    psql -h $DB_IP -U postgres -d $DB_NAME -f scripts/02_enable_alloydb_ai.sql
+    
+    echo "=== Initialization Build Complete ==="

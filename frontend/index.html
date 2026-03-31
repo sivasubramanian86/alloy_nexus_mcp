@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuerySage — Pharma Inventory Intelligence</title>
+  <meta name="description" content="AI-powered natural language interface for hospital pharmaceutical inventory, powered by AlloyDB AI and Gemini." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo-group">
+        <div class="logo-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="15" fill="url(#logoGrad)"/>
+            <path d="M10 16h12M16 10v12" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="16" cy="16" r="4" fill="white" fill-opacity="0.2"/>
+            <defs>
+              <linearGradient id="logoGrad" x1="0" y1="0" x2="32" y2="32">
+                <stop offset="0%" stop-color="#4f46e5"/>
+                <stop offset="100%" stop-color="#06b6d4"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div>
+          <h1 class="logo-name">QuerySage</h1>
+          <p class="logo-sub">Pharma Inventory Intelligence</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge--alloydb">AlloyDB AI</span>
+        <span class="badge badge--gemini">Gemini 2.5 Flash</span>
+        <span class="status-dot" id="status-dot" title="Checking connection..."></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── KPI Dashboard ───────────────────────────────────────────────────── -->
+  <section class="kpi-section" aria-label="Key Performance Indicators">
+    <div class="kpi-grid" id="kpi-grid">
+      <div class="kpi-card" id="kpi-total-drugs">
+        <div class="kpi-icon kpi-icon--blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8l-5-5z"/><path d="M9 3v5h5"/></svg>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-value" id="val-total-drugs">—</div>
+          <div class="kpi-label">Drugs Tracked</div>
+        </div>
+      </div>
+      <div class="kpi-card kpi-card--alert" id="kpi-below-reorder">
+        <div class="kpi-icon kpi-icon--amber">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-value" id="val-below-reorder">—</div>
+          <div class="kpi-label">Below Reorder Level</div>
+        </div>
+      </div>
+      <div class="kpi-card" id="kpi-pending-orders">
+        <div class="kpi-icon kpi-icon--purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-value" id="val-pending-orders">—</div>
+          <div class="kpi-label">Pending Orders</div>
+        </div>
+      </div>
+      <div class="kpi-card kpi-card--critical" id="kpi-controlled">
+        <div class="kpi-icon kpi-icon--red">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-value" id="val-controlled">—</div>
+          <div class="kpi-label">Controlled Substances</div>
+        </div>
+      </div>
+      <div class="kpi-card kpi-card--warn" id="kpi-expiring">
+        <div class="kpi-icon kpi-icon--orange">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-value" id="val-expiring">—</div>
+          <div class="kpi-label">Expiring in 60 Days</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Main Query Interface ─────────────────────────────────────────────── -->
+  <main class="main-content">
+    <div class="query-panel">
+      <div class="query-header">
+        <h2>Ask in Plain English</h2>
+        <p class="query-hint">Powered by AlloyDB AI natural language — converts your question to SQL and summarises the results</p>
+      </div>
+
+      <!-- Search input -->
+      <div class="search-container">
+        <div class="search-box" role="search">
+          <div class="search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <input
+            type="text"
+            id="nl-input"
+            class="search-input"
+            placeholder="e.g. Which drugs are below their reorder level?"
+            aria-label="Natural language query"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="btn-query" class="btn-query" aria-label="Execute query">
+            <span class="btn-text">Ask</span>
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Example chips -->
+      <div class="chips-section">
+        <p class="chips-label">Quick queries:</p>
+        <div class="chips-grid" id="example-chips" aria-label="Example queries"></div>
+      </div>
+    </div>
+
+    <!-- ── Results Panel ──────────────────────────────────────────────────── -->
+    <div id="results-panel" class="results-panel hidden" aria-live="polite">
+
+      <!-- Loading state -->
+      <div id="loading-state" class="loading-state hidden">
+        <div class="spinner" aria-hidden="true">
+          <div class="spinner-ring"></div>
+          <div class="spinner-ring spinner-ring--2"></div>
+          <div class="spinner-ring spinner-ring--3"></div>
+        </div>
+        <p class="loading-text">Translating to SQL and querying AlloyDB...</p>
+      </div>
+
+      <!-- Error state -->
+      <div id="error-state" class="error-state hidden">
+        <div class="error-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        </div>
+        <p id="error-message" class="error-message">Something went wrong.</p>
+      </div>
+
+      <!-- Result content -->
+      <div id="result-content" class="result-content hidden">
+
+        <!-- Meta row: source badge + latency -->
+        <div class="result-meta">
+          <span class="meta-label">Source:</span>
+          <span id="source-badge" class="source-badge"></span>
+          <span class="meta-divider">·</span>
+          <span id="latency-badge" class="latency-badge"></span>
+          <span class="meta-divider">·</span>
+          <span id="row-count-badge" class="row-count-badge"></span>
+        </div>
+
+        <!-- AI Summary Card -->
+        <div class="summary-card">
+          <div class="summary-header">
+            <div class="summary-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <h3>AI Insight</h3>
+            <span class="gemini-badge">Gemini</span>
+          </div>
+          <div id="ai-summary" class="summary-body"></div>
+        </div>
+
+        <!-- Generated SQL accordion -->
+        <details class="sql-accordion" id="sql-accordion">
+          <summary class="sql-summary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            View generated SQL
+          </summary>
+          <pre class="sql-code" id="generated-sql"></pre>
+        </details>
+
+        <!-- Data table -->
+        <div class="table-container">
+          <div class="table-header-row">
+            <h3 class="table-title">Results</h3>
+            <button id="btn-export" class="btn-export" aria-label="Export as CSV">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export CSV
+            </button>
+          </div>
+          <div class="table-scroll">
+            <table id="results-table" class="results-table">
+              <thead id="table-head"></thead>
+              <tbody id="table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Architecture / Info Section ──────────────────────────────────── -->
+    <section class="info-section">
+      <h2 class="info-title">How It Works</h2>
+      <div class="pipeline-steps">
+        <div class="pipeline-step">
+          <div class="step-number">1</div>
+          <div class="step-body">
+            <h4>Natural Language Input</h4>
+            <p>Ask any question about the pharma inventory in plain English</p>
+          </div>
+        </div>
+        <div class="pipeline-arrow" aria-hidden="true">→</div>
+        <div class="pipeline-step">
+          <div class="step-number">2</div>
+          <div class="step-body">
+            <h4>AlloyDB AI Translation</h4>
+            <p>AlloyDB AI's NL extension converts your question to a precise SQL query</p>
+          </div>
+        </div>
+        <div class="pipeline-arrow" aria-hidden="true">→</div>
+        <div class="pipeline-step">
+          <div class="step-number">3</div>
+          <div class="step-body">
+            <h4>AlloyDB Execution</h4>
+            <p>SQL runs against your live pharma inventory database with sub-second latency</p>
+          </div>
+        </div>
+        <div class="pipeline-arrow" aria-hidden="true">→</div>
+        <div class="pipeline-step">
+          <div class="step-number">4</div>
+          <div class="step-body">
+            <h4>Gemini Summarisation</h4>
+            <p>Gemini 2.5 Flash synthesises the raw results into actionable insights</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ── Footer ──────────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <p>QuerySage · Gen AI APAC Hackathon 2026 · Track 3: AI-Ready Databases</p>
+    <p class="footer-stack">AlloyDB for PostgreSQL · Gemini 2.5 Flash · Cloud Run · FastAPI</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
