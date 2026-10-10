@@ -15,6 +15,7 @@ jobs:
   deploy-agent:
     name: Build & Deploy Agent
     runs-on: ubuntu-latest
+    if: ${{ secrets.WIF_PROVIDER != '' && secrets.WIF_SERVICE_ACCOUNT != '' }}
     permissions:
       contents: read
       id-token: write
